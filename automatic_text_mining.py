@@ -12,6 +12,7 @@ data training sets
 from selenium import webdriver
 import requests
 from text_processing import build_dataset
+from manual_text_mining import collect_book
 import os
 import time
 from classes import Book
@@ -36,33 +37,6 @@ successful_downloads = []
 
 ################################################################################
 
-def collect_book(link_to_book, book_name, author):
-    book_download = False
-    print('Trying to download book with `requests`...')
-    try:
-        book_text = requests.get(link_to_book).text
-        book_download = True
-    except:
-        print('Trying to download book with `urllib.request`...')
-        try:
-            time.sleep(1)
-            book_text = urllib.request.urlretrieve(link_to_book)
-            book_download = True
-        except:
-            print('Neither downlaod method was successful.')
-
-    # remove project gutenberg header in document, which is concluded by:
-    #
-    # ***START OF PROJECT .... ***
-    # book text...
-    star_counter = 0
-    for i in range(len(book_text)):
-        if book_text[i:i+3] == "***":
-            star_counter += 1
-            if star_counter == 2:
-                book_text = book_text[i+3:len(book_text)]
-                break
-
 def find_book(book_name, author_name):
     """
     Searches project gutenberg for book_name, and returns the url of the txt
@@ -82,7 +56,7 @@ def find_book(book_name, author_name):
         header_string = '{} by {}'.format(book_name, author_name)
         # Now we are on the results page of the search query where we will
         # test each link for a match with the book name
-        print('Number of links to check for {}: {}'.format(book_name, len(links)))
+        print('\nNumber of links to check for {}: {}'.format(book_name, len(links)))
 
         for i in range(len(links)):
             links = driver.find_elements_by_class_name("link")
@@ -90,10 +64,11 @@ def find_book(book_name, author_name):
             link.click() # enter each element of the results page
             time.sleep(sleep_time)
             url = driver.current_url
-            while "gutenberg.org" not in url: # make sure we are in the right website
+            if "gutenberg.org" not in url: # make sure we are in the right website
             # because some links lead to facebook or twitter
-                driver.back()
                 time.sleep(1)
+                driver.back()
+                print("trying new site")
             else:
                 web_code = requests.get(url).text
                 if header_string in web_code:
@@ -128,7 +103,7 @@ def book_looper():
         link_to_book = find_book(book_name, author_name)
         if link_to_book != False:
             if collect_book(link_to_book, book_name, author_name):
-                print("{} all ready to go!".format(book_name))
+                print("\n{} all ready to go!".format(book_name))
                 if os.path.exists("successful_downloads.txt"):
                     file = open("successful_downloads.txt", "rb+")
                     file_text = file.read()
@@ -155,6 +130,16 @@ def book_looper():
 if __name__=="__main__":
     ############################################### Configuring program
 
+    yn = input("Delete /books if existing? Problems may arise if there will be duplicate files. y/n --> ")
+    if yn == "y" or yn == "Y":
+        yn_2 = input("Are you sure you want to delete the folder /books? y/n --> ")
+        if yn_2 == "y" or yn == "Y":
+            os.system("rm -rf books")
+        else:
+            print("Okay, will not delete /books")
+    else:
+        print("Okay, will not delete /books")
+
     yn = input("Download books from list? y/n --> ")
     if yn == "y" or yn == "Y":
 
@@ -164,7 +149,7 @@ if __name__=="__main__":
         if sleep_time_bool == 'y' or sleep_time_bool == 'Y':
             sleep_time = input("How long (in seconds) would you like the program to wait between web pages? float--> ")
             sleep_time = float(sleep_time)
-            time.sleep(1)
+            time.sleep(1.5)
         else:
             sleep_time = 0.0
             print("Loading web driver...")
@@ -177,16 +162,6 @@ if __name__=="__main__":
         print("Moving books to /books folder")
         os.system("mkdir books; mv *___* books") # put books in a separate folder
 
-    yn = input("Delete /books if existing? Problems may arise if there will be duplicate files. y/n --> ")
-    if yn == "y" or yn == "Y":
-        yn_2 = input("Are you sure you want to delete the folder /books? y/n --> ")
-        if yn_2 == "y" or yn == "Y":
-            os.system("rm -rf books")
-        else:
-            print("Okay, will not delete /books")
-    else:
-        print("Okay, will not delete /books")
-
     ################################### Text processing for the downloaded books
 
     # Generate a book object for each downloaded book
@@ -196,7 +171,7 @@ if __name__=="__main__":
         successful_downloads_text = successful_downloads_file.read()
         successful_downloads = pickle.loads(successful_downloads_text)
     except:
-        print("There is no record of successfully download bookds.")
+        print("There is no record of successfully download books.")
         exit()
 
     for book_file_name in successful_downloads:
