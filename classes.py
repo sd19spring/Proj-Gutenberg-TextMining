@@ -12,11 +12,38 @@ import numpy as np
 import pickle
 import os
 import string
+import requests
 
 class Book:
-    def __init__(self, path_to_book):
-        self.path_to_book = path_to_book
-        self.book_name_author = path_to_book[6:]
+    def __init__(self, book_name_author):
+        self.book_name_author = book_name_author
+
+    def collect_book(self, gutenberg_index):
+        try:
+            book_number = gutenberg_index[self.book_name_author]
+        except KeyError:
+            print("Book name/author not in the index.")
+            return False
+        book_link_number = ''
+        book_file_path = "books/{}.txt".format(self.book_name_author)
+
+        for i in range(len(book_number)):
+            book_link_number = book_link_number + book_number[0:i] + "/"
+        book_link_number = book_link_number + book_file_path
+        try:
+            book_text = requests.get("http://mirrors.xmission.com/gutenberg/{}".format(book_link_number)).text
+        except requests.exceptions.MissingSchema:
+            print("Invalid url / could not download from this link.")
+            return False
+        if os.path.exists(book_file_path):
+            print("Book already exists.")
+            return False
+        else:
+            book_file = open(book_file_path, 'w')
+            book_file.write(book_text)
+            book_file.close()
+            self.path_to_book = book_file_path
+            return True
 
     def tokenize_book(self):
         """
@@ -31,7 +58,7 @@ class Book:
         lines = []
         words = []
 
-        with open("books/"+self.book_name_author) as text:
+        with open("books/"+self.book_name_author+".txt") as text:
             for line in text:
                 processed_line = line.strip()
                 lines.append(processed_line)
@@ -80,3 +107,8 @@ class Book:
             hist_file.close()
         else:
             print("Book has not yet been tokenized; this needs to be done before a hist can be made.")
+
+    def make_book(self, gutenberg_index):
+        if self.collect_book(gutenberg_index):
+            self.tokenize_book()
+            self.make_hist()
