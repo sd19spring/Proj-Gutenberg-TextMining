@@ -114,7 +114,7 @@ class Book:
             data_text = pickle.dumps(words)
             file.write(data_text)
             file.close()
-            print('Successfully built and wrote dataset for {}'.format(self.book_name_author))
+            print('Successfully tokenized and wrote file for {}'.format(self.book_name_author))
 
         self.tokenized_book_file_path = data_file_name
 
@@ -138,7 +138,8 @@ class Book:
             hist_file.write(hist_text)
             hist_file.close()
         else:
-            print("Book has not yet been tokenized; this needs to be done before a hist can be made.")
+            print("Book has not yet been tokenized; this needs to be done \
+before a histogram can be made.")
         self.book_hist_file_path = hist_file_path
 
     def make_book(self, gutenberg_index):
