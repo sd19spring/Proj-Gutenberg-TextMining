@@ -1,23 +1,16 @@
 ################################################################################
 
 """
-This software will take a list of books (book_list) and automatically find and
-download the text files for the books. It will also prompt the user if the
-data training sets
+This software will take a list of books (book_list) and automatically find,
+download, and generate all associated files for the books.
 """
 
 ################################################################################
 
-# from selenium import webdriver
 import requests
-from text_processing import build_dataset
-# from manual_text_mining import collect_book
 import os
-import time
 from classes import Book
 import pickle
-
-# PATH_TO_GECKO_DRIVER = "/home/duncan/softdes/mp3"
 
 ################################################################################
 
@@ -30,11 +23,19 @@ book_list = [
 ('Metamorphosis, by Franz Kafka')
 ]
 
-successful_downloads = []
 
 # book_list = [('The Adventures of Sherlock Holmes', 'Arthur Conan Doyle')]
 
 def build_gutenberg_index():
+    """
+    Generates a python-readable index of project gutenberg's master index -
+    GUTINDEX.txt - called gutenberg_index.txt. Returns a dictionary of the
+    index. If gutenberg_index.txt exists, it is deleted and redownloaded.
+    """
+    if os.path.exists("gutenberg_index.txt"):
+        print("Deleting old gutenberg_index.txt file.")
+        os.system("rm -rf gutenberg_index.txt")
+
     gut_index_file = open("GUTINDEX.txt", 'r+')
     gut_index_text = gut_index_file.read()
     gut_index_file.close()
@@ -44,6 +45,8 @@ def build_gutenberg_index():
     gutenberg_index = {}
     gut_lines = gut_index_text.split("\n")
 
+    print("Generating gutenberg_index dictionary and writing as \
+gutenberg_index.txt")
     for line in gut_lines[260:]:
         if line == "<==End of GUTINDEX.ALL==>":
             break
@@ -63,32 +66,63 @@ def build_gutenberg_index():
     to_write = pickle.dumps(gutenberg_index)
     gut_index_file.write(to_write)
     gut_index_file.close()
+    print("Index successfully generated and written to disk as \
+gutenberg_index.txt")
     return gutenberg_index
 
-if __name__=="__main__":
-    if os.path.exists("gutenberg_index.txt"):
-        print("\nProj. Gutenberg index already exists.")
-
-        yn = input("Redownload the gutenberg index file? New books may have been added.")
+def check_GUTINDEX():
+    """
+    Handles the GUTINDEX.txt file - either download it for the first time or
+    redownloads the file.
+    """
+    if os.path.exists("GUTINDEX.txt"):
+        yn = input("Redownload the index of project gutenberg - GUTINDEX.txt - \
+file and delete the old one? New books may have been added. y/n --> ")
         while True:
             if yn == "y" or yn == "Y":
-                gutenberg_index = build_gutenberg_index()
+                print("Deleting old GUTINDEX.txt file")
+                os.system("rm -rf GUTINDEX.txt")
+                print("Downloading the GUTINDEX file...")
+                try:
+                    GUTINDEX = requests.get("https://www.gutenberg.org/dirs/GUTINDEX.ALL").text
+                except requests.exceptions.MissingSchema:
+                    print("Invalid url / could not download from this link")
+                    break
+                GUTINDEX_file = open("GUTINDEX.txt", "w")
+                GUTINDEX_file.write(GUTINDEX)
+                GUTINDEX_file.close()
+
+                build_gutenberg_index()
                 break
             elif yn == "n" or yn == "N":
-                gutenberg_index_binary = open("gutenberg_index.txt", 'rb')
-                gutenberg_index_text = gutenberg_index_binary.read()
-                gutenberg_index = pickle.loads(gutenberg_index_text)
-                gutenberg_index_binary.close()
                 break
             else:
                 print("Invalid input; try again")
     else:
-        print("Generating Python-readable index for proj. Gutenberg books...")
-        gutenberg_index = build_gutenberg_index()
-        print("Index built.\n")
+        while True:
+            try:
+                print("Downloading the GUTINDEX file...")
+                GUTINDEX = requests.get("https://www.gutenberg.org/dirs/GUTINDEX.ALL").text
+            except requests.exceptions.MissingSchema:
+                print("Invalid url / could not download from this link")
+                break
+            GUTINDEX_file = open("GUTINDEX.txt", "w")
+            GUTINDEX_file.write(GUTINDEX)
+            GUTINDEX_file.close()
+            print("Download of the GUTINDEX file successful")
 
+            build_gutenberg_index()
+            break
+
+def check_books_folder():
+    """
+    If existing books/ folder exists, the user is prompted to either delte it
+    and make a new folder or keep it. If it doesn't exist, a books/ folder is
+    made. The /books folder will store all of the books' files.
+    """
     if os.path.exists("books/"):
-        yn = input("Delete books/ folder? Problems may arise if there will be duplicate files. y/n --> ")
+        yn = input("Delete books/ folder? Problems may arise if there will be \
+duplicate files. y/n --> ")
         # TODO: handle invalid characters
         if yn == "y" or yn == "Y":
             yn_2 = input("Are you sure you want to delete the folder /books? y/n --> ")
@@ -101,6 +135,14 @@ if __name__=="__main__":
             print("Okay, will not delete /books")
     else:
         os.system("mkdir books")
+
+if __name__=="__main__":
+    check_GUTINDEX()
+    check_books_folder()
+
+    gutenberg_index_file = open("gutenberg_index.txt", "rb")
+    gutenberg_index_text = gutenberg_index_file.read()
+    gutenberg_index = pickle.loads(gutenberg_index_text)
 
     dict_books = {}
     yn = input("Download books from list? y/n --> ")
