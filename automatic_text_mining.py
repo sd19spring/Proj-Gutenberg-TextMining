@@ -76,9 +76,9 @@ def check_GUTINDEX():
     redownloads the file.
     """
     if os.path.exists("GUTINDEX.txt"):
-        yn = input("Redownload the index of project gutenberg - GUTINDEX.txt - \
-file and delete the old one? New books may have been added. y/n --> ")
         while True:
+            yn = input("Redownload the index of project gutenberg - GUTINDEX.txt - \
+file and delete the old one? New books may have been added. y/n --> ")
             if yn == "y" or yn == "Y":
                 print("Deleting old GUTINDEX.txt file")
                 os.system("rm -rf GUTINDEX.txt")
@@ -98,21 +98,19 @@ file and delete the old one? New books may have been added. y/n --> ")
                 break
             else:
                 print("Invalid input; try again")
+                continue
     else:
-        while True:
-            try:
-                print("Downloading the GUTINDEX file...")
-                GUTINDEX = requests.get("https://www.gutenberg.org/dirs/GUTINDEX.ALL").text
-            except requests.exceptions.MissingSchema:
-                print("Invalid url / could not download from this link")
-                break
-            GUTINDEX_file = open("GUTINDEX.txt", "w")
-            GUTINDEX_file.write(GUTINDEX)
-            GUTINDEX_file.close()
-            print("Download of the GUTINDEX file successful")
+        try:
+            print("Downloading the GUTINDEX file...")
+            GUTINDEX = requests.get("https://www.gutenberg.org/dirs/GUTINDEX.ALL").text
+        except requests.exceptions.MissingSchema:
+            print("Invalid url / could not download from this link")
+        GUTINDEX_file = open("GUTINDEX.txt", "w")
+        GUTINDEX_file.write(GUTINDEX)
+        GUTINDEX_file.close()
+        print("Download of the GUTINDEX file successful")
 
-            build_gutenberg_index()
-            break
+        build_gutenberg_index()
 
 def check_books_folder():
     """
@@ -121,18 +119,19 @@ def check_books_folder():
     made. The /books folder will store all of the books' files.
     """
     if os.path.exists("books/"):
-        yn = input("Delete books/ folder? Problems may arise if there will be \
+        while True:
+            yn = input("Delete books/ folder? Problems may arise if there will be \
 duplicate files. y/n --> ")
-        # TODO: handle invalid characters
-        if yn == "y" or yn == "Y":
-            yn_2 = input("Are you sure you want to delete the folder /books? y/n --> ")
-            if yn_2 == "y" or yn == "Y":
+            if yn == "y" or yn == "Y":
                 os.system("rm -rf books")
                 os.system("mkdir books")
-            else:
+                break
+            elif yn == "n" or y == "N":
                 print("Okay, will not delete /books")
-        else:
-            print("Okay, will not delete /books")
+                break
+            else:
+                print("Invalid input; try again")
+                continue
     else:
         os.system("mkdir books")
 
@@ -143,12 +142,20 @@ if __name__=="__main__":
     gutenberg_index_file = open("gutenberg_index.txt", "rb")
     gutenberg_index_text = gutenberg_index_file.read()
     gutenberg_index = pickle.loads(gutenberg_index_text)
+    gutenberg_index_file.close()
 
     dict_books = {}
-    yn = input("Download books from list? y/n --> ")
-    if yn == "y" or yn == "Y":
-        for book_name_author in book_list:
-            print("Downloading: {}".format(book_name_author))
-            dict_books[book_name_author] = Book(book_name_author)
-            book = dict_books[book_name_author]
-            book.make_book(gutenberg_index)
+    while True:
+        yn = input("Download books from list? y/n --> ")
+        if yn == "y" or yn == "Y":
+            for book_name_author in book_list:
+                print("Downloading: {}".format(book_name_author))
+                dict_books[book_name_author] = Book(book_name_author)
+                book = dict_books[book_name_author]
+                book.make_book(gutenberg_index)
+            break
+        elif yn == "n" or yn == "N":
+            break
+        else:
+            print("Invalid input; try again")
+            continue
