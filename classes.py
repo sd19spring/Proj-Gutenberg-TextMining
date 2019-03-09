@@ -20,7 +20,6 @@ class InvalidBookError(Error):
     """Raised when the book could not be successfully acquired"""
     pass
 
-
 class Book:
     """
     A book object stores all relevant information about the book (identified by
@@ -125,19 +124,19 @@ class Book:
             self.tokenized_book = words
             return words
 
-    def make_hist(self, words):
+    def make_hist(self):
         """
         Makes a hist (in the form of a dictionary) of word frequency usage
         for the book. Pickles and writes the data to a text file.
         """
         hist_file_path = self.path_to_book[:len(self.path_to_book)-4]+"___hist.txt"
         if not os.path.exists(hist_file_path):
+            words = self.tokenize_book
             hist = {}
             for word in words:
                 hist[word] = hist.get(word,0) + 1
 
             hist_text = pickle.dumps(hist)
-            hist_file_path = self.path_to_book[:len(self.path_to_book)-4]+"___hist.txt"
             hist_file = open(hist_file_path, 'wb')
             hist_file.write(hist_text)
             hist_file.close()
@@ -151,7 +150,7 @@ class Book:
             hist = pickle.loads(file_text)
             return hist
 
-    def make_atf(self, hist):
+    def make_atf(self):
         """
         Makes a hist (in the form of a dictionary) of the augmented term
         frequency for each word in the book. Pickles and writes the data to a
@@ -162,6 +161,7 @@ class Book:
         """
         atf_file_path = self.path_to_book[:len(self.path_to_book)-4]+"___atf.txt"
         if not os.path.exists(atf_file_path):
+            hist = self.book_hist
             max_word_ct = 0
             for word in hist:
                 if hist[word] > max_word_ct:
@@ -172,7 +172,6 @@ class Book:
                 atf[word] = hist[word]/(2*max_word_ct)+0.5
 
             hist_text = pickle.dumps(atf)
-            atf_file_path = self.path_to_book[:len(self.path_to_book)-4]+"___atf.txt"
             atf_file = open(atf_file_path, 'wb')
             atf_text = pickle.dumps(atf)
             atf_file.write(atf_text)
@@ -187,6 +186,38 @@ class Book:
             atf = pickle.loads(file_text)
             return atf
 
+    def make_random_markov_helper(self):
+        random_rmf_file_path = self.path_to_book[:len(self.path_to_book)-4]+"___rmf.txt"
+        if not os.path.exists(random_rmf_file_path):
+            words = self.tokenize_book
+            hist = self.book_hist
+
+            print("Making helper dictionary for markov chain for {}".format(self.book_name_author))
+            random_rmf = {}
+            for word_in_question in hist:
+                random_rmf[word] = []
+                for i in range(len(words)-1):
+                    if word_in_question == words[i]:
+                        random_rmf[word].append(words[i+1])
+
+            random_rmf_text = pickle.dumps(random_rmf)
+            random_rmf_file = open(random_rmf_file_path, 'wb')
+            random_rmf_file.write(random_rmf_text)
+            random_rmf_file.close()
+            self.book_random_rmf_file_path = random_rmf_file_path
+            self.book_random_rmf = random_rmf
+            print("Helper dictionary for markov chain for {} successfully made and written to file".format(self.book_name_author))
+            return random_rmf
+        else:
+            file = open(random_rmf_file_path, 'rb')
+            file_text = file.read()
+            random_rmf = pickle.loads(file_text)
+            return random_rmf
+
+    # TODO
+    # def make_assisted_markov_helper(self):
+
+
     def make_book(self, gutenberg_index):
         """
         Runs all Book methods in one go.
@@ -196,8 +227,15 @@ class Book:
         hist = self.make_hist(words)
         atf = self.make_atf(hist)
 
-
     def __str__(self):
         return "Book: {}\nBook file: {}\nBook token file: {}\nBook hist\
         file: {}".format(self.book_name_author, self.book_file_path,
         self.tokenized_book_file_path, self.book_hist_file_path)
+
+class MarkovChain:
+    def __init__(self, book1_obj, book2_obj):
+        self.book_1 = book1_obj
+        self.book2 =  book2_obj
+
+    # TODO
+    # def random_markov_chain(self):
