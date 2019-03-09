@@ -91,6 +91,10 @@ class Book:
             file_text = file.read()
             words = pickle.loads(file_text)
             file.close()
+            try:
+                self.tokenized_book
+            except AttributeError:
+                self.tokenized_book = words
             return words
         else:
             # Information for parsing the book
@@ -122,6 +126,7 @@ class Book:
 
             self.tokenized_book_file_path = data_file_name
             self.tokenized_book = words
+            self.book_length = len(words)
             return words
 
     def make_hist(self):
@@ -148,6 +153,10 @@ class Book:
             file = open(hist_file_path, 'rb')
             file_text = file.read()
             hist = pickle.loads(file_text)
+            try:
+                self.book_hist
+            except AttributeError:
+                self.book_hist = hist
             return hist
 
     def make_atf(self):
@@ -184,6 +193,11 @@ class Book:
             file = open(atf_file_path, 'rb')
             file_text = file.read()
             atf = pickle.loads(file_text)
+            file.close()
+            try:
+                self.book_atf
+            except AttributeError:
+                self.book_atf = atf
             return atf
 
     def make_random_markov_helper(self):
@@ -194,11 +208,11 @@ class Book:
 
             print("Making helper dictionary for markov chain for {}".format(self.book_name_author))
             random_rmf = {}
-            for word_in_question in hist:
-                random_rmf[word] = []
-                for i in range(len(words)-1):
-                    if word_in_question == words[i]:
-                        random_rmf[word].append(words[i+1])
+            for i in range(len(words)-1):
+                try:
+                    random_rmf[words[i]].append(words[i+1])
+                except KeyError:
+                    random_rmf[words[i]] = [words[i+1]]
 
             random_rmf_text = pickle.dumps(random_rmf)
             random_rmf_file = open(random_rmf_file_path, 'wb')
@@ -212,11 +226,49 @@ class Book:
             file = open(random_rmf_file_path, 'rb')
             file_text = file.read()
             random_rmf = pickle.loads(file_text)
+            file.close()
+            try:
+                self.book_random_rmf
+            except AttributeError:
+                self.book_random_rmf = random_rmf
             return random_rmf
 
-    # TODO
-    # def make_assisted_markov_helper(self):
+    def make_assisted_markov_helper(self):
+        if not os.path.exists(assisted_rmf_file_path):
+            words = self.tokenize_book
+            hist = self.book_hist
 
+            print("Making helper dictionary for markov chain for {}".format(self.book_name_author))
+            assisted_rmf = {}
+            for i in range(len(words)-1):
+                try:
+                    if words[i+1] not in assisted_rmf[words[i]]:
+                        for i in range(self.book_atf[words[i+1]]):
+                            assisted_rmf[words[i]].append(words[i+1])
+                except KeyError:
+                    assisted_rmf[words[i]] = []
+                    if words[i+1] not in assisted_rmf[words[i]]:
+                        for i in range(self.book_atf[words[i+1]]):
+                            assisted_rmf[words[i]].append(words[i+1])
+
+            assisted_rmf_text = pickle.dumps(assisted_rmf)
+            assisted_rmf_file = open(assisted_rmf_file_path, 'wb')
+            assisted_rmf_file.write(assisted_rmf_text)
+            assisted_rmf_file.close()
+            self.book_assisted_rmf_file_path = assisted_rmf_file_path
+            self.book_assisted_rmf = assisted_rmf
+            print("Helper dictionary for markov chain for {} successfully made and written to file".format(self.book_name_author))
+            return assisted_rmf
+        else:
+            file = open(assisted_rmf_file_path, 'rb')
+            file_text = file.read()
+            assisted_rmf = pickle.loads(file_text)
+            file.close()
+            try:
+                self.assisted_rmf
+            except AttributeError:
+                self.assisted_rmf = assisted_rmf
+            return assisted_rmf
 
     def make_book(self, gutenberg_index):
         """
@@ -232,10 +284,9 @@ class Book:
         file: {}".format(self.book_name_author, self.book_file_path,
         self.tokenized_book_file_path, self.book_hist_file_path)
 
-class MarkovChain:
-    def __init__(self, book1_obj, book2_obj):
-        self.book_1 = book1_obj
-        self.book2 =  book2_obj
-
-    # TODO
-    # def random_markov_chain(self):
+# class MarkovChainGenerator:
+#     def __init__(self, book1_obj, book2_obj):
+#         self.book_1 = book1_obj
+#         self.book2 =  book2_obj
+#
+#     def random_markov_chain(self):
