@@ -30,7 +30,6 @@ book_list = [
 ('A Tale of Two Cities, by Charles Dickens'),
 ]
 
-
 uf.check_GUTINDEX()
 uf.check_books_folder()
 
@@ -41,3 +40,11 @@ gutenberg_index = pickle.loads(gutenberg_index_text)
 gutenberg_index_file.close()
 
 library = uf.handle_books(gutenberg_index)
+
+for book_name_author in library:
+    control_markov = uf.control_markov_chain(library[book_name_author])
+    print("\nControl markov chain for {}:\n{}".format(book_name_author,control_markov))
+    random_markov = uf.random_markov_chain(library[book_name_author])
+    print("\nRandom markov chain for {}:\n{}\n".format(book_name_author,random_markov))
+    assisted_markov = uf.assisted_markov_chain(library[book_name_author])
+    print("\nAssisted markov chain for {}:\n{}\n".format(book_name_author,assisted_markov))
