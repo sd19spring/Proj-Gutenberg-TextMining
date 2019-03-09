@@ -1,3 +1,14 @@
+import random
+import requests
+import os
+import classes as cl
+import pickle
+
+book_list = [
+('Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'),
+('A Tale of Two Cities, by Charles Dickens'),
+]
+
 def build_gutenberg_index():
     """
     Generates a python-readable index of project gutenberg's master index -
@@ -110,7 +121,7 @@ def handle_books(gutenberg_index):
         if yn == "y" or yn == "Y":
             for book_name_author in book_list:
                 print("Loading {}".format(book_name_author))
-                library[book_name_author] = cl.Book(book_name_author)
+                library[book_name_author] = cl.Book(book_name_author, gutenberg_index)
                 book = library[book_name_author]
                 book.make_book(gutenberg_index)
             break
@@ -141,32 +152,36 @@ def handle_books(gutenberg_index):
     return library
 
 def random_markov_chain(book):
-    output_list = [book.words(random.randint(0, book.book_length-1))]
+    output_list = [book.words[random.randint(0, book.length-1)]]
 
     # Generate an output of a 30 word length
     for i in range(29):
-        possible_words = self.random_markov[output_list[-1]]
-        output_list.append(possible_words(rand_int(0,len(possible_words))))
+        possible_words = book.random_markov[output_list[-1]]
+        output_list.append(possible_words[random.randint(0,len(possible_words)-1)])
     output_str = ""
     for word in output_list:
         output_str = output_str + " " + word + " "
     return output_str
 
 def assisted_markov_chain(book):
-    output_list = [book.words(random.randint(0, book.book_length-1))]
+    output_list = [book.words[random.randint(0, book.length-1)]]
 
     # Generate an output of a 30 word length
     for i in range(29):
-        possible_words = self.assisted_markov[output_list[-1]]
-        output_list.append(possible_words(rand_int(0,len(possible_words))))
+        possible_words = book.assisted_markov[output_list[-1]]
+        output_list.append(possible_words[random.randint(0,len(possible_words)-1)])
     output_str = ""
     for word in output_list:
         output_str = output_str + " " + word + " "
     return output_str
 
-def markov_control(book):
+def control_markov_chain(book):
     rand_int = random.randint(0, book.length-30)
-    return book.words[i:i+30]
+    output_list = book.words[rand_int:rand_int+30]
+    output_str = ""
+    for word in output_list:
+        output_str = output_str + " " + word + " "
+    return output_str
 
 if __name__=="__main__":
     """
@@ -182,5 +197,3 @@ if __name__=="__main__":
     gutenberg_index_file.close()
 
     library = handle_books(gutenberg_index)
-
-    
