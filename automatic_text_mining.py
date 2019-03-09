@@ -9,22 +9,25 @@ download, and generate all associated files for the books.
 
 import requests
 import os
-from classes import Book
+import classes as cl
 import pickle
 
 ################################################################################
 
+# book_list = [
+# ('Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'),
+# ('A Tale of Two Cities, by Charles Dickens'),
+# ('The Adventures of Sherlock Holmes, by Arthur Conan Doyle'),
+# ('Adventures of Huckleberry Finn, by Mark Twain'),
+# ('The Yellow Wallpaper, by Charlotte Perkins Gilman'),
+# ('Metamorphosis, by Franz Kafka')
+# ]
+
 book_list = [
 ('Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'),
 ('A Tale of Two Cities, by Charles Dickens'),
-('The Adventures of Sherlock Holmes, by Arthur Conan Doyle'),
-('Adventures of Huckleberry Finn, by Mark Twain'),
-('The Yellow Wallpaper, by Charlotte Perkins Gilman'),
-('Metamorphosis, by Franz Kafka')
 ]
 
-
-# book_list = [('The Adventures of Sherlock Holmes', 'Arthur Conan Doyle')]
 
 def build_gutenberg_index():
     """
@@ -45,8 +48,7 @@ def build_gutenberg_index():
     gutenberg_index = {}
     gut_lines = gut_index_text.split("\n")
 
-    print("Generating gutenberg_index dictionary and writing as \
-gutenberg_index.txt")
+    print("Generating gutenberg_index dictionary and writing as gutenberg_index.txt")
     for line in gut_lines[260:]:
         if line == "<==End of GUTINDEX.ALL==>":
             break
@@ -66,8 +68,7 @@ gutenberg_index.txt")
     to_write = pickle.dumps(gutenberg_index)
     gut_index_file.write(to_write)
     gut_index_file.close()
-    print("Index successfully generated and written to disk as \
-gutenberg_index.txt")
+    print("Index successfully generated and written to disk as gutenberg_index.txt")
     return gutenberg_index
 
 def check_GUTINDEX():
@@ -77,8 +78,7 @@ def check_GUTINDEX():
     """
     if os.path.exists("GUTINDEX.txt"):
         while True:
-            yn = input("Redownload the index of project gutenberg - GUTINDEX.txt - \
-file and delete the old one? New books may have been added. y/n --> ")
+            yn = input("Redownload the index of project gutenberg - GUTINDEX.txt - and delete the old one? New books may have been added. y/n --> ")
             if yn == "y" or yn == "Y":
                 print("Deleting old GUTINDEX.txt file")
                 os.system("rm -rf GUTINDEX.txt")
@@ -93,6 +93,7 @@ file and delete the old one? New books may have been added. y/n --> ")
                 GUTINDEX_file.close()
 
                 build_gutenberg_index()
+
                 break
             elif yn == "n" or yn == "N":
                 break
@@ -120,14 +121,12 @@ def check_books_folder():
     """
     if os.path.exists("books/"):
         while True:
-            yn = input("Delete books/ folder? Problems may arise if there will be \
-duplicate files. y/n --> ")
+            yn = input("Delete the existing books/ folder? y/n --> ")
             if yn == "y" or yn == "Y":
                 os.system("rm -rf books")
                 os.system("mkdir books")
                 break
             elif yn == "n" or y == "N":
-                print("Okay, will not delete /books")
                 break
             else:
                 print("Invalid input; try again")
@@ -135,27 +134,53 @@ duplicate files. y/n --> ")
     else:
         os.system("mkdir books")
 
+def handle_books(gutenberg_index):
+    library = {}
+    while True:
+        yn = input("Compare books from hardcoded list? If no, then you will type in your own. y/n --> ")
+        if yn == "y" or yn == "Y":
+            for book_name_author in book_list:
+                print("Loading {}".format(book_name_author))
+                library[book_name_author] = cl.Book(book_name_author)
+                book = library[book_name_author]
+                book.make_book(gutenberg_index)
+            break
+        elif yn == "n" or yn == "N":
+            n = 0
+            while True:
+                if n == 2:
+                    break
+                elif n == 0:
+                    book_name_author = input("\nType in what book you want to download using this format: Book Title, by Author Name: --> ")
+                else:
+                    book_name_author = input("\nType in the second book you want to download using this format: Book Title, by Author Name: --> ")
+
+                try:
+                    library[book_name_author] = cl.Book(book_name_author, gutenberg_index)
+                    book = library[book_name_author]
+                    book.make_book(gutenberg_index)
+                    print("Successfully acquired {}".format(book_name_author))
+                    n += 1
+                    continue
+                except cl.InvalidBookError:
+                    print("Try re-entering the book name and author (be sure to use the author's full name)...")
+                    continue
+            break
+        else:
+            print("Invalid input; try again")
+            continue
+    return library
+
 if __name__=="__main__":
     check_GUTINDEX()
     check_books_folder()
 
+    # Load the gutenberg_index dictionary
     gutenberg_index_file = open("gutenberg_index.txt", "rb")
     gutenberg_index_text = gutenberg_index_file.read()
     gutenberg_index = pickle.loads(gutenberg_index_text)
     gutenberg_index_file.close()
 
-    dict_books = {}
-    while True:
-        yn = input("Download books from list? y/n --> ")
-        if yn == "y" or yn == "Y":
-            for book_name_author in book_list:
-                print("Downloading: {}".format(book_name_author))
-                dict_books[book_name_author] = Book(book_name_author)
-                book = dict_books[book_name_author]
-                book.make_book(gutenberg_index)
-            break
-        elif yn == "n" or yn == "N":
-            break
-        else:
-            print("Invalid input; try again")
-            continue
+    library = handle_books(gutenberg_index)
+
+    
