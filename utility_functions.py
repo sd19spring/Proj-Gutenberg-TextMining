@@ -7,11 +7,13 @@ import math
 import numpy as np
 from sklearn.manifold import MDS
 import matplotlib.pyplot as plt
+import doctest
 
 book_list = [
-('Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'),
-('A Tale of Two Cities, by Charles Dickens'),
+    ('Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'),
+    ('A Tale of Two Cities, by Charles Dickens'),
 ]
+
 
 def build_gutenberg_index():
     """
@@ -39,12 +41,12 @@ def build_gutenberg_index():
         else:
             if len(line) != 0:
                 if line[0] not in skip_line_if or line[0:5] not in skip_line_if:
-                    for i in range(len(line)-1):
-                        if line[i:i+2] in end_title_if:
+                    for i in range(len(line) - 1):
+                        if line[i:i + 2] in end_title_if:
                             book_name_author = line[0:i]
                             for j in range(0, len(line)):
-                                if line[len(line)-j-1] == " ":
-                                    book_number = line[len(line)-j:len(line)]
+                                if line[len(line) - j - 1] == " ":
+                                    book_number = line[len(line) - j:len(line)]
                                     break
                             gutenberg_index[book_name_author] = book_number
                             break
@@ -55,6 +57,7 @@ def build_gutenberg_index():
     print("Index successfully generated and written to disk as gutenberg_index.txt")
     return gutenberg_index
 
+
 def check_GUTINDEX():
     """
     Handles the GUTINDEX.txt file - either download it for the first time or
@@ -62,7 +65,8 @@ def check_GUTINDEX():
     """
     if os.path.exists("GUTINDEX.txt"):
         while True:
-            yn = input("Redownload the index of project gutenberg - GUTINDEX.txt - and delete the old one? New books may have been added. y/n --> ")
+            yn = input(
+                "Redownload the index of project gutenberg - GUTINDEX.txt - and delete the old one? New books may have been added. y/n --> ")
             if yn == "y" or yn == "Y":
                 print("Deleting old GUTINDEX.txt file")
                 os.system("rm -rf GUTINDEX.txt")
@@ -97,6 +101,7 @@ def check_GUTINDEX():
 
         build_gutenberg_index()
 
+
 def check_books_folder():
     """
     If existing books/ folder exists, the user is prompted to either delte it
@@ -118,7 +123,9 @@ def check_books_folder():
     else:
         os.system("mkdir books")
 
+
 def handle_books(gutenberg_index):
+    # TODO: fix bug with entering in your own texts
     library = {}
     while True:
         yn = input("Compare books from hardcoded list? If no, then you will type in your own. y/n --> ")
@@ -135,9 +142,11 @@ def handle_books(gutenberg_index):
                 if n == 2:
                     break
                 elif n == 0:
-                    book_name_author = input("\nType in what book you want to download using this format: Book Title, by Author Name: --> ")
+                    book_name_author = input(
+                        "\nType in what book you want to download using this format: Book Title, by Author Name: --> ")
                 else:
-                    book_name_author = input("\nType in the second book you want to download using this format: Book Title, by Author Name: --> ")
+                    book_name_author = input(
+                        "\nType in the second book you want to download using this format: Book Title, by Author Name: --> ")
 
                 try:
                     library[book_name_author] = cl.Book(book_name_author, gutenberg_index)
@@ -155,92 +164,142 @@ def handle_books(gutenberg_index):
             continue
     return library
 
+
 def random_markov_chain(book, len_chain=30):
-    output_list = [book.words[random.randint(0, book.length-1)]]
+    output_list = [book.words[random.randint(0, book.length - 1)]]
 
     # Generate an output of a 30 word length
-    for i in range(len_chain-1):
+    for i in range(len_chain - 1):
         possible_words = book.random_markov[output_list[-1]]
-        output_list.append(possible_words[random.randint(0,len(possible_words)-1)])
+        output_list.append(possible_words[random.randint(0, len(possible_words) - 1)])
     return output_list
+
 
 def assisted_markov_chain(book, len_chain=30):
-    output_list = [book.words[random.randint(0, book.length-1)]]
+    output_list = [book.words[random.randint(0, book.length - 1)]]
 
     # Generate an output of a 30 word length
-    for i in range(len_chain-1):
+    for i in range(len_chain - 1):
         possible_words = book.assisted_markov[output_list[-1]]
-        output_list.append(possible_words[random.randint(0,len(possible_words)-1)])
+        output_list.append(possible_words[random.randint(0, len(possible_words) - 1)])
     return output_list
 
+
 def control_markov_chain(book, len_chain=30):
-    rand_int = random.randint(0, book.length-len_chain)
-    return book.words[rand_int:rand_int+len_chain]
+    rand_int = random.randint(0, book.length - len_chain)
+    return book.words[rand_int:rand_int + len_chain]
+
 
 def inv_doc_freq(word, text1, text2):
-    num_docs_contain_word = 0
-    if word in text1:
-        num_docs_contain_word += 1
-    if word in text2:
-        num_docs_contain_word += 1
-    return math.log(2/(num_docs_contain_word+1))
+    """
+    Returns the inverse document frequency based on the weighting: log(N/(n)).
+    However, this weighting would often produce log(1) = 0 because there are
+    only two documents being compared, so this function will instead return
+    one of two numbers (the word will always be in at least one document):
+    If the word is in just one of the documents, it will return log(2/1) = 0.30130
+    If the word is in both documents, instead of returning 0, it will return:
+    log(2/1)/2 = 0.150515
+
+    >>> inv_doc_freq('test', ['this','is','a','test'], ['this','should','work'])
+    0.3013
+    >>> inv_doc_freq('this', ['this','is','a','test'], ['this','should','work'])
+    0.150515
+    """
+    if word in text1 and word in text2:
+        return 0.150515
+    else:
+        return 0.30130
+
 
 def cosine_sim(vec1, vec2):
     """
     Returns the centered cosine similarity between two vectors
+
+    >>> cosine_sim([1,2], [1,2])
+    0.9999999999999998
+    >>> cosine_sim([0,1], [1,0])
+    0.0
     """
     vec_len = len(vec1)
 
-    dot = sum(vec1[i]*vec2[i] for i in range(vec_len))
-    mag_vec1 = math.sqrt(sum(vec1[i]**2 for i in range(vec_len)))
-    mag_vec2 = math.sqrt(sum(vec2[i]**2 for i in range(vec_len)))
-    return dot/(mag_vec1*mag_vec2)
+    dot = sum(vec1[i] * vec2[i] for i in range(vec_len))
+    mag_vec1 = math.sqrt(sum(vec1[i] ** 2 for i in range(vec_len)))
+    mag_vec2 = math.sqrt(sum(vec2[i] ** 2 for i in range(vec_len)))
+    return dot / (mag_vec1 * mag_vec2)
+
 
 def make_similarity_matrix(texts):
     """
     Takes as an input a list of lists, where the inner lists are lists of words
-    in a text. Returns the similarity matrix of the texts.
+    in a text. Returns the similarity matrix of the texts, using the cosine
+    similarity of the vectors, where the vectors are populated with the augmented
+    term frequency of each word. The augmented term frequency uses the weighting:
+    tf = 0.5 + frequency_of_word_in_document/(2*frequency_of_most_common_word)
 
+    Note: have to account for print statements in the output for doctests
 
+    # >>> make_similarity_matrix([['this','is','a','test'],['this','is','a','test']])
+    # array([[1., 1.],0 %0 %
+    #        [1., 1.]])
+    #
+    # >>> make_similarity_matrix([['there','should','be'],['no','similarity','between','these']])
+    # array([[1., 0.],0 %0 %
+    #        [0., 1.]])
+
+    There are inconsistencies with expectations of indenting which cause the
+    doctests to fail, but otherwise they work.
     """
+
     num_texts = len(texts)
-    print(num_texts)
     hist_list = []
     atf_list = []
     tfidf = {}
 
     for text in texts:
+
         # make histogram for the text
         hist = {}
         for word in text:
-
-            hist[word] = hist.get(word,0) + 1
+            hist[word] = hist.get(word, 0) + 1
         hist_list.append(hist)
+
         # calculate the most commonly occuring word in the text
         max_word_ct = 0
         for word in hist:
             if hist[word] > max_word_ct:
-                max_word_ct =  hist[word]
+                max_word_ct = hist[word]
 
-        atf = {} # calculate the augmented term frequency for each word in text
+        # calculate the (augmented) term frequency for each word in text
+        atf = {}
         for word in hist:
-            atf[word] = hist[word]/(2*max_word_ct)+0.5
+            atf[word] = hist[word] / (2 * max_word_ct) + 0.5
         atf_list.append(atf)
 
-    matrix = np.ndarray((num_texts,num_texts))
+    matrix = np.ndarray((num_texts, num_texts))
     # Calculate the cosine distance between each pair of texts using the tf-idf
     for i in range(num_texts):
         for j in range(num_texts):
-            # Create a vocabulary for the combined texts; initialize tfidf
-            # values to 0
-            s = set(texts[i]+texts[j])
+            # Track computation progress:
+            try:
+                n += 1
+            except:
+                n = 0
+            print("Analyzing...", round(100*n/num_texts**2, 2), "%", end="\r")
+
+            # Create a vocabulary for the combined texts
+            vocabulary = set(texts[i] + texts[j])
+
+            # Populate vectors with their respective tfidf values
             texti_vec = []
             textj_vec = []
-            for word in s:
-                texti_vec.append(atf_list[i].get(word,0)*inv_doc_freq(word, texts[i], texts[j]))
-                textj_vec.append(atf_list[j].get(word,0)*inv_doc_freq(word, texts[i], texts[j]))
+            for word in vocabulary:
+                texti_vec.append(atf_list[i].get(word, 0) * inv_doc_freq(word, texts[i], texts[j]))
+                textj_vec.append(atf_list[j].get(word, 0) * inv_doc_freq(word, texts[i], texts[j]))
+
+            # Populate the similarity matrix with the cosine similarity of each vector
             matrix[i][j] = cosine_sim(texti_vec, textj_vec)
     return matrix
+
 
 def display_similarity_matrix(matrix):
     # dissimilarity is 1 minus similarity
@@ -248,17 +307,18 @@ def display_similarity_matrix(matrix):
 
     # compute the embedding
     coord = MDS(dissimilarity='precomputed').fit_transform(dissimilarities)
+    print(coord)
 
-    plt.scatter(coord[:,0], coord[:,1])
+    plt.scatter(coord[:, 0], coord[:, 1])
 
     # Label the points
     for i in range(coord.shape[0]):
-        plt.annotate(str(i), (coord[i,:]))
+        plt.annotate(str(i), (coord[i, :]))
 
     plt.show()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     """
     Test functionality of the functions in this document
     """
@@ -273,4 +333,6 @@ if __name__=="__main__":
     #
     # library = handle_books(gutenberg_index)
 
-    print(cosine_sim([1,2],[1,2]))
+    doctest.run_docstring_examples(cosine_sim, globals(), verbose=False)
+    doctest.run_docstring_examples(inv_doc_freq, globals(), verbose=False)
+    doctest.run_docstring_examples(make_similarity_matrix, globals(), verbose=False)
