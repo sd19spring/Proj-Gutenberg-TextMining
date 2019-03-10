@@ -3,6 +3,10 @@ import requests
 import os
 import classes as cl
 import pickle
+import math
+import numpy as np
+from sklearn.manifold import MDS
+import matplotlib.pyplot as plt
 
 book_list = [
 ('Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'),
@@ -151,49 +155,122 @@ def handle_books(gutenberg_index):
             continue
     return library
 
-def random_markov_chain(book):
+def random_markov_chain(book, len_chain=30):
     output_list = [book.words[random.randint(0, book.length-1)]]
 
     # Generate an output of a 30 word length
-    for i in range(29):
+    for i in range(len_chain-1):
         possible_words = book.random_markov[output_list[-1]]
         output_list.append(possible_words[random.randint(0,len(possible_words)-1)])
-    output_str = ""
-    for word in output_list:
-        output_str = output_str + " " + word + " "
-    return output_str
+    return output_list
 
-def assisted_markov_chain(book):
+def assisted_markov_chain(book, len_chain=30):
     output_list = [book.words[random.randint(0, book.length-1)]]
 
     # Generate an output of a 30 word length
-    for i in range(29):
+    for i in range(len_chain-1):
         possible_words = book.assisted_markov[output_list[-1]]
         output_list.append(possible_words[random.randint(0,len(possible_words)-1)])
-    output_str = ""
-    for word in output_list:
-        output_str = output_str + " " + word + " "
-    return output_str
+    return output_list
 
-def control_markov_chain(book):
-    rand_int = random.randint(0, book.length-30)
-    output_list = book.words[rand_int:rand_int+30]
-    output_str = ""
-    for word in output_list:
-        output_str = output_str + " " + word + " "
-    return output_str
+def control_markov_chain(book, len_chain=30):
+    rand_int = random.randint(0, book.length-len_chain)
+    return book.words[rand_int:rand_int+len_chain]
+
+def inv_doc_freq(word, text1, text2):
+    num_docs_contain_word = 0
+    if word in text1:
+        num_docs_contain_word += 1
+    if word in text2:
+        num_docs_contain_word += 1
+    return math.log(2/(num_docs_contain_word+1))
+
+def cosine_sim(vec1, vec2):
+    """
+    Returns the centered cosine similarity between two vectors
+    """
+    vec_len = len(vec1)
+
+    dot = sum(vec1[i]*vec2[i] for i in range(vec_len))
+    mag_vec1 = math.sqrt(sum(vec1[i]**2 for i in range(vec_len)))
+    mag_vec2 = math.sqrt(sum(vec2[i]**2 for i in range(vec_len)))
+    return dot/(mag_vec1*mag_vec2)
+
+def make_similarity_matrix(texts):
+    """
+    Takes as an input a list of lists, where the inner lists are lists of words
+    in a text. Returns the similarity matrix of the texts.
+
+
+    """
+    num_texts = len(texts)
+    print(num_texts)
+    hist_list = []
+    atf_list = []
+    tfidf = {}
+
+    for text in texts:
+        # make histogram for the text
+        hist = {}
+        for word in text:
+
+            hist[word] = hist.get(word,0) + 1
+        hist_list.append(hist)
+        # calculate the most commonly occuring word in the text
+        max_word_ct = 0
+        for word in hist:
+            if hist[word] > max_word_ct:
+                max_word_ct =  hist[word]
+
+        atf = {} # calculate the augmented term frequency for each word in text
+        for word in hist:
+            atf[word] = hist[word]/(2*max_word_ct)+0.5
+        atf_list.append(atf)
+
+    matrix = np.ndarray((num_texts,num_texts))
+    # Calculate the cosine distance between each pair of texts using the tf-idf
+    for i in range(num_texts):
+        for j in range(num_texts):
+            # Create a vocabulary for the combined texts; initialize tfidf
+            # values to 0
+            s = set(texts[i]+texts[j])
+            texti_vec = []
+            textj_vec = []
+            for word in s:
+                texti_vec.append(atf_list[i].get(word,0)*inv_doc_freq(word, texts[i], texts[j]))
+                textj_vec.append(atf_list[j].get(word,0)*inv_doc_freq(word, texts[i], texts[j]))
+            matrix[i][j] = cosine_sim(texti_vec, textj_vec)
+    return matrix
+
+def display_similarity_matrix(matrix):
+    # dissimilarity is 1 minus similarity
+    dissimilarities = 1 - matrix
+
+    # compute the embedding
+    coord = MDS(dissimilarity='precomputed').fit_transform(dissimilarities)
+
+    plt.scatter(coord[:,0], coord[:,1])
+
+    # Label the points
+    for i in range(coord.shape[0]):
+        plt.annotate(str(i), (coord[i,:]))
+
+    plt.show()
+
 
 if __name__=="__main__":
     """
     Test functionality of the functions in this document
     """
-    check_GUTINDEX()
-    check_books_folder()
+    # check_GUTINDEX()
+    # check_books_folder()
+    #
+    # # Load the gutenberg_index dictionary
+    # gutenberg_index_file = open("gutenberg_index.txt", "rb")
+    # gutenberg_index_text = gutenberg_index_file.read()
+    # gutenberg_index = pickle.loads(gutenberg_index_text)
+    # gutenberg_index_file.close()
+    #
+    # library = handle_books(gutenberg_index)
 
-    # Load the gutenberg_index dictionary
-    gutenberg_index_file = open("gutenberg_index.txt", "rb")
-    gutenberg_index_text = gutenberg_index_file.read()
-    gutenberg_index = pickle.loads(gutenberg_index_text)
-    gutenberg_index_file.close()
-
-    library = handle_books(gutenberg_index)
+    print(cosine_sim([1,2],[1,2]))
