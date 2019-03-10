@@ -11,9 +11,18 @@ import doctest
 
 book_list = [
     ('Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'),
-    ('A Tale of Two Cities, by Charles Dickens'),
+    ('Such is Life, by Frank Wedekind'),
 ]
 
+def list_to_string(list):
+    """
+    Takes a list of strings and returns a string that is the combination of the
+    strings in the list.
+    """
+    return_string = ""
+    for word in list:
+        return_string = return_string + word + " "
+    return return_string
 
 def build_gutenberg_index():
     """
@@ -139,14 +148,14 @@ def handle_books(gutenberg_index):
         elif yn == "n" or yn == "N":
             n = 0
             while True:
-                if n == 2:
-                    break
-                elif n == 0:
+                if n == 0:
                     book_name_author = input(
                         "\nType in what book you want to download using this format: Book Title, by Author Name: --> ")
-                else:
+                elif n==1:
                     book_name_author = input(
-                        "\nType in the second book you want to download using this format: Book Title, by Author Name: --> ")
+                        "\nType in the second book you want to using this format: Book Title, by Author Name: --> ")
+                else:
+                    break
 
                 try:
                     library[book_name_author] = cl.Book(book_name_author, gutenberg_index)
@@ -190,30 +199,53 @@ def control_markov_chain(book, len_chain=30):
     return book.words[rand_int:rand_int + len_chain]
 
 
-def inv_doc_freq(word, text1, text2):
+def atf_helper(text):
+    """
+    :param text: a list of words
+    :return: the histograms for raw word count and augmented term frequency
+
+    >>> text = ['word', 'word', 'hello']; hist, atf = atf_helper(text); [atf[word] for word in text]
+    [1.0, 1.0, 0.75]
+    """
+    # make histogram for the text
+    hist = {}
+    for word in text:
+        hist[word] = hist.get(word, 0) + 1
+        # calculate the most commonly occuring word in the text
+    max_word_ct = 0
+    for word in hist:
+        if hist[word] > max_word_ct:
+            max_word_ct = hist[word]
+
+    # calculate the (augmented) term frequency for each word in text
+    atf = {}
+    for word in hist:
+        atf[word] = hist[word] / (2 * max_word_ct) + 0.5
+
+    return hist, atf
+
+
+def inv_doc_freq(word, hist_list):
     """
     Returns the inverse document frequency based on the weighting: log(N/(n)).
-    However, this weighting would often produce log(1) = 0 because there are
-    only two documents being compared, so this function will instead return
-    one of two numbers (the word will always be in at least one document):
-    If the word is in just one of the documents, it will return log(2/1) = 0.30130
-    If the word is in both documents, instead of returning 0, it will return:
-    log(2/1)/2 = 0.150515
 
-    >>> inv_doc_freq('test', ['this','is','a','test'], ['this','should','work'])
-    0.3013
-    >>> inv_doc_freq('this', ['this','is','a','test'], ['this','should','work'])
-    0.150515
+    >>> inv_doc_freq('test', [{'this':1,'is':1,'a':1,'test':1},{'this':1,'should':1,'work':1}])
+    0.3010299956639812
+
+    >>> inv_doc_freq('this', [{'this':1,'is':1,'a':1,'test':1},{'this':1,'should':1,'work':1}])
+    0.0
     """
-    if word in text1 and word in text2:
-        return 0.150515
-    else:
-        return 0.30130
+    n = 0
+
+    for hist in hist_list:
+        n += hist.get(word, 0)
+    return math.log10(len(hist_list)/n)
 
 
 def cosine_sim(vec1, vec2):
     """
-    Returns the centered cosine similarity between two vectors
+    Returns the centered cosine similarity between two vectors. The cosine similarity is calculated as the dot product
+    of two vectors divided by the product of their magnitudes.
 
     >>> cosine_sim([1,2], [1,2])
     0.9999999999999998
@@ -221,7 +253,6 @@ def cosine_sim(vec1, vec2):
     0.0
     """
     vec_len = len(vec1)
-
     dot = sum(vec1[i] * vec2[i] for i in range(vec_len))
     mag_vec1 = math.sqrt(sum(vec1[i] ** 2 for i in range(vec_len)))
     mag_vec2 = math.sqrt(sum(vec2[i] ** 2 for i in range(vec_len)))
@@ -238,42 +269,34 @@ def make_similarity_matrix(texts):
 
     Note: have to account for print statements in the output for doctests
 
-    # >>> make_similarity_matrix([['this','is','a','test'],['this','is','a','test']])
-    # array([[1., 1.],0 %0 %
-    #        [1., 1.]])
-    #
-    # >>> make_similarity_matrix([['there','should','be'],['no','similarity','between','these']])
-    # array([[1., 0.],0 %0 %
-    #        [0., 1.]])
+    >>> make_similarity_matrix([['this','is','a','test'],['this','is','a','test']])
+    array([[1., 1.],0 %0 %
+           [1., 1.]])
+
+    >>> make_similarity_matrix([['there','should','be'],['no','similarity','between','these']])
+    array([[1., 0.],0 %0 %
+           [0., 1.]])
 
     There are inconsistencies with expectations of indenting which cause the
     doctests to fail, but otherwise they work.
     """
 
     num_texts = len(texts)
-    hist_list = []
+
     atf_list = []
-    tfidf = {}
+    hist_list = []
 
     for text in texts:
-
-        # make histogram for the text
-        hist = {}
-        for word in text:
-            hist[word] = hist.get(word, 0) + 1
+        hist, atf = atf_helper(text)
         hist_list.append(hist)
-
-        # calculate the most commonly occuring word in the text
-        max_word_ct = 0
-        for word in hist:
-            if hist[word] > max_word_ct:
-                max_word_ct = hist[word]
-
-        # calculate the (augmented) term frequency for each word in text
-        atf = {}
-        for word in hist:
-            atf[word] = hist[word] / (2 * max_word_ct) + 0.5
         atf_list.append(atf)
+
+    # Create a vocabulary for the combined texts
+    v = []
+    for text in texts:
+        for word in text:
+            v.append(word)
+    vocabulary = set(v)
 
     matrix = np.ndarray((num_texts, num_texts))
     # Calculate the cosine distance between each pair of texts using the tf-idf
@@ -286,15 +309,13 @@ def make_similarity_matrix(texts):
                 n = 0
             print("Analyzing...", round(100*n/num_texts**2, 2), "%", end="\r")
 
-            # Create a vocabulary for the combined texts
-            vocabulary = set(texts[i] + texts[j])
-
             # Populate vectors with their respective tfidf values
             texti_vec = []
             textj_vec = []
-            for word in vocabulary:
-                texti_vec.append(atf_list[i].get(word, 0) * inv_doc_freq(word, texts[i], texts[j]))
-                textj_vec.append(atf_list[j].get(word, 0) * inv_doc_freq(word, texts[i], texts[j]))
+            for word in texts[i]:
+                texti_vec.append(atf_list[i].get(word, 0) * inv_doc_freq(word, hist_list))
+            for word in texts[j]:
+                textj_vec.append(atf_list[j].get(word, 0) * inv_doc_freq(word, hist_list))
 
             # Populate the similarity matrix with the cosine similarity of each vector
             matrix[i][j] = cosine_sim(texti_vec, textj_vec)
@@ -307,7 +328,6 @@ def display_similarity_matrix(matrix):
 
     # compute the embedding
     coord = MDS(dissimilarity='precomputed').fit_transform(dissimilarities)
-    print(coord)
 
     plt.scatter(coord[:, 0], coord[:, 1])
 
@@ -319,20 +339,12 @@ def display_similarity_matrix(matrix):
 
 
 if __name__ == "__main__":
-    """
-    Test functionality of the functions in this document
-    """
-    # check_GUTINDEX()
-    # check_books_folder()
-    #
-    # # Load the gutenberg_index dictionary
-    # gutenberg_index_file = open("gutenberg_index.txt", "rb")
-    # gutenberg_index_text = gutenberg_index_file.read()
-    # gutenberg_index = pickle.loads(gutenberg_index_text)
-    # gutenberg_index_file.close()
-    #
-    # library = handle_books(gutenberg_index)
+    print("Not all doctests run successfully, but that doesn't necessarily mean that their respective functions aren't "
+          "working correctly; please refer to the function's documentation for more information.")
+    cont = input("Press enter to continue")
 
     doctest.run_docstring_examples(cosine_sim, globals(), verbose=False)
     doctest.run_docstring_examples(inv_doc_freq, globals(), verbose=False)
     doctest.run_docstring_examples(make_similarity_matrix, globals(), verbose=False)
+    doctest.run_docstring_examples(atf_helper, globals(), verbose=False)
+    doctest.run_docstring_examples(inv_doc_freq, globals(), verbose=False)
