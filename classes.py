@@ -71,8 +71,9 @@ class Book:
         book_link_number = ''
         for i in range(1, len(book_number)):
             # generating the unique part of the download link for the book
-            book_link_number = book_link_number + book_number[0:i] + "/"
+            book_link_number = book_link_number + book_number[i-1:i] + "/"
         book_link_number = book_link_number + book_number + "/" + book_number + ".txt"
+        print(book_link_number)
         try:
             print("Downloading {}".format(self.name_author))
             book_text = requests.get("http://mirrors.xmission.com/gutenberg/{}".format(book_link_number)).text
@@ -145,8 +146,6 @@ class Book:
         Makes a hist (in the form of a dictionary) of word frequency usage
         for the book. Pickles and writes the data to a text file.
         """
-        # TODO: make a doctest
-
         hist_file_path = self.path_to_book[:len(self.path_to_book) - 4] + "___hist.txt"
         if not os.path.exists(hist_file_path):
             words = self.tokenize_book
@@ -180,10 +179,7 @@ class Book:
 
         Augmented term frequency = (raw freq. of word)/(2*raw freq. of most
         occuring word) + 0.5
-
         """
-        # TODO: make a doctest
-
         atf_file_path = self.path_to_book[:len(self.path_to_book) - 4] + "___atf.txt"
         if not os.path.exists(atf_file_path):
             hist = self.hist
@@ -191,7 +187,6 @@ class Book:
             for word in hist:
                 if hist[word] > max_word_ct:
                     max_word_ct = hist[word]
-
             atf = {}
             for word in hist:
                 atf[word] = hist[word] / (2 * max_word_ct) + 0.5
@@ -217,6 +212,13 @@ class Book:
             return atf
 
     def make_random_markov_helper(self):
+        """
+        This function makes a dictionary where the entry for each key (a word)
+        is a list of all words that follow that word in the book. The list does
+        not filter for uniqueness and allows for repeats of the same value.
+        returns: the random_markov dictionary
+        arguments: none
+        """
         random_markov_file_path = self.path_to_book[:len(self.path_to_book) - 4] + "___randommarkov.txt"
         if not os.path.exists(random_markov_file_path):
             print("Making helper dictionary for markov chain for {}".format(self.name_author))
@@ -248,6 +250,14 @@ class Book:
             return random_markov
 
     def make_assisted_markov_helper(self):
+        """This function makes a dictionary where the entry for each key (a word)
+        is a list of all words that follow that word in the book. The list does
+        not filter for uniqueness and in fact makes copies of each entry
+        depending on that word's augmented term frequency value (atf); the
+        higher the atf, the more entries there are for each word and a greater
+        chance that they will be chosen at random when the markov chain is made.
+        returns: the random_markov dictionary
+        arguments: none"""
         assisted_markov_file_path = self.path_to_book[:len(self.path_to_book) - 4] + "___assistedmarkov.txt"
         if not os.path.exists(assisted_markov_file_path):
             print("Making helper dictionary for markov chain for {}".format(self.name_author))
