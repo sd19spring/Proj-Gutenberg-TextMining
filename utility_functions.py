@@ -24,6 +24,7 @@ def list_to_string(list):
         return_string = return_string + word + " "
     return return_string
 
+
 def build_gutenberg_index():
     """
     Generates a python-readable index of project gutenberg's master index -
@@ -227,7 +228,7 @@ def atf_helper(text):
 
 def inv_doc_freq(word, hist_list):
     """
-    Returns the inverse document frequency based on the weighting: log(N/(n)).
+    Returns the inverse document frequency based on the weighting: log(1+N/(n)).
 
     >>> inv_doc_freq('test', [{'this':1,'is':1,'a':1,'test':1},{'this':1,'should':1,'work':1}])
     0.3010299956639812
@@ -236,10 +237,9 @@ def inv_doc_freq(word, hist_list):
     0.0
     """
     n = 0
-
     for hist in hist_list:
         n += hist.get(word, 0)
-    return math.log10(len(hist_list)/n)
+    return math.log10(1+len(hist_list)/n)
 
 
 def cosine_sim(vec1, vec2):
@@ -312,8 +312,9 @@ def make_similarity_matrix(texts):
             # Populate vectors with their respective tfidf values
             texti_vec = []
             textj_vec = []
-            for word in texts[i]:
+            for word in vocabulary:
                 texti_vec.append(atf_list[i].get(word, 0) * inv_doc_freq(word, hist_list))
+                print(inv_doc_freq(word, hist_list))
             for word in texts[j]:
                 textj_vec.append(atf_list[j].get(word, 0) * inv_doc_freq(word, hist_list))
 
