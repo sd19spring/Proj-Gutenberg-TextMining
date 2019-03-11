@@ -8,11 +8,11 @@ import pickle
 
 book_list = [
     ('Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'),
-    ('A Tale of Two Cities, by Charles Dickens'),
+    ('Such is Life, by Frank Wedekind'),
 ]
 
-len_markov_chain = 1000
-num_sets_markov_chains = 3 # must be a multiple of 3
+len_markov_chain = 20000
+num_sets_markov_chains = 30 # must be a multiple of 3
 
 uf.check_GUTINDEX()
 uf.check_books_folder()
@@ -25,27 +25,31 @@ gutenberg_index_file.close()
 
 library = uf.handle_books(gutenberg_index)
 
-# for book_name_author in library:
-#     control_markov = uf.control_markov_chain(library[book_name_author])
-#     print("\nControl markov chain for {}:\n{}".format(book_name_author,control_markov))
-#     random_markov = uf.random_markov_chain(library[book_name_author])
-#     print("\nRandom markov chain for {}:\n{}\n".format(book_name_author,random_markov))
-#     assisted_markov = uf.assisted_markov_chain(library[book_name_author])
-#     print("\nAssisted markov chain for {}:\n{}\n".format(book_name_author,assisted_markov))
+print("\nExample markov chains:\n")
+
+for book_name_author in library:
+    control_markov = uf.control_markov_chain(library[book_name_author])
+    print("\nControl markov chain for {}:\n{}".format(book_name_author,uf.list_to_string(control_markov)))
+    random_markov = uf.random_markov_chain(library[book_name_author])
+    print("\nRandom markov chain for {}:\n{}\n".format(book_name_author,uf.list_to_string(random_markov)))
+    assisted_markov = uf.assisted_markov_chain(library[book_name_author])
+    print("\nAssisted markov chain for {}:\n{}\n".format(book_name_author,uf.list_to_string(assisted_markov)))
 
 text_lists = []
-for i in range(num_sets_markov_chains):
-    if i < num_sets_markov_chains/3:
-        text_lists.append(
-            uf.control_markov_chain(library['Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'], len_markov_chain))
-    elif num_sets_markov_chains/3 <= i < 2*num_sets_markov_chains/3:
-        text_lists.append(
-            uf.random_markov_chain(library['Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'], len_markov_chain))
+for book in book_list:
+    for i in range(num_sets_markov_chains):
+        if num_sets_markov_chains/3 <= i < 2*num_sets_markov_chains/3:
+            text_lists.append(
+                uf.random_markov_chain(library[book], len_markov_chain))
+        else:
+            text_lists.append(
+                uf.assisted_markov_chain(library[book], len_markov_chain))
+    break
 
-
-    else:
-        text_lists.append(
-            uf.assisted_markov_chain(library['Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'], len_markov_chain))
+# For testing the similarity matrix calculation, uncomment the following line of
+# code. There should be two points plotted on top of each other and one separated
+# a small distance from them. 
+# text_lists = [['this','is','a','test'],['this','is','a','test'],['this','is','not','a','test']]
 
 matrix = uf.make_similarity_matrix(text_lists)
 uf.display_similarity_matrix(matrix)
