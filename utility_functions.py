@@ -1,3 +1,7 @@
+"""
+This contains the functions that classes.py and automatic_text_mining.py reference
+"""
+
 import random
 import requests
 import os
@@ -14,10 +18,14 @@ book_list = [
     ('Such is Life, by Frank Wedekind'),
 ]
 
+
 def list_to_string(list):
     """
     Takes a list of strings and returns a string that is the combination of the
     strings in the list.
+
+    >>> list_to_string(['this','is','a','test'])
+    this is a test
     """
     return_string = ""
     for word in list:
@@ -29,7 +37,8 @@ def build_gutenberg_index():
     """
     Generates a python-readable index of project gutenberg's master index -
     GUTINDEX.txt - called gutenberg_index.txt. Returns a dictionary of the
-    index. If gutenberg_index.txt exists, it is deleted and redownloaded.
+    index. If gutenberg_index.txt exists, it is deleted and re-downloaded.
+    :return gutenberg_index: a dictionary that is built from GUTINDEX
     """
     if os.path.exists("gutenberg_index.txt"):
         print("Deleting old gutenberg_index.txt file.")
@@ -39,23 +48,29 @@ def build_gutenberg_index():
     gut_index_text = gut_index_file.read()
     gut_index_file.close()
 
+    # Hard coding conditions that the text parser will use:
     skip_line_if = [" ", "~", "TITLE"]
     end_title_if = ["  ", " 1", " 2", " 3", " 4", " 5", " 6", " 7", " 8", " 9"]
     gutenberg_index = {}
-    gut_lines = gut_index_text.split("\n")
 
     print("Generating gutenberg_index dictionary and writing as gutenberg_index.txt")
+    # The following code is what parses the text file into a dictionary
+    gut_lines = gut_index_text.split("\n")
     for line in gut_lines[260:]:
         if line == "<==End of GUTINDEX.ALL==>":
             break
         else:
+            # Skip empty lines
             if len(line) != 0:
                 if line[0] not in skip_line_if or line[0:5] not in skip_line_if:
+                    # At this point, the line in consideration will have a book title/author name and index number
                     for i in range(len(line) - 1):
                         if line[i:i + 2] in end_title_if:
+                            # Find where the book title ends in the line
                             book_name_author = line[0:i]
                             for j in range(0, len(line)):
                                 if line[len(line) - j - 1] == " ":
+                                    # Pull out the index number of the book
                                     book_number = line[len(line) - j:len(line)]
                                     break
                             gutenberg_index[book_name_author] = book_number
@@ -114,7 +129,7 @@ def check_GUTINDEX():
 
 def check_books_folder():
     """
-    If existing books/ folder exists, the user is prompted to either delte it
+    If existing books/ folder exists, the user is prompted to either delete it
     and make a new folder or keep it. If it doesn't exist, a books/ folder is
     made. The /books folder will store all of the books' files.
     """
@@ -125,7 +140,7 @@ def check_books_folder():
                 os.system("rm -rf books")
                 os.system("mkdir books")
                 break
-            elif yn == "n" or y == "N":
+            elif yn == "n" or yn == "N":
                 break
             else:
                 print("Invalid input; try again")
@@ -135,7 +150,13 @@ def check_books_folder():
 
 
 def handle_books(gutenberg_index):
-    # TODO: fix bug with entering in your own texts
+    """
+    This function will prompt the user to either download books from the hard-coded list or to type in the desired
+    books by hand. The program will then acquire the books if they haven't already, or if they have, loading them into
+    book objects in the library dictionary.
+    :param gutenberg_index:
+    :return library: a dictionary of the book objects
+    """
     library = {}
     while True:
         yn = input("Compare books from hardcoded list? If no, then you will type in your own. y/n --> ")
@@ -152,7 +173,7 @@ def handle_books(gutenberg_index):
                 if n == 0:
                     book_name_author = input(
                         "\nType in what book you want to download using this format: Book Title, by Author Name: --> ")
-                elif n==1:
+                elif n == 1:
                     book_name_author = input(
                         "\nType in the second book you want to using this format: Book Title, by Author Name: --> ")
                 else:
@@ -176,6 +197,12 @@ def handle_books(gutenberg_index):
 
 
 def random_markov_chain(book, len_chain=30):
+    """
+    Generates a markov chain using the random method described in the Book class.
+    :param book: a book object
+    :param len_chain: length of the desired markov chain
+    :return: a list of words that is the markov chain
+    """
     output_list = [book.words[random.randint(0, book.length - 1)]]
 
     # Generate an output of a 30 word length
@@ -186,24 +213,41 @@ def random_markov_chain(book, len_chain=30):
 
 
 def assisted_markov_chain(book, len_chain=30):
+    """
+    Generates a markov chain using the assisted method described in the Book class.
+    :param book: book object
+    :param len_chain: length of the desired chain
+    :return: a list of words that is the markov chain
+    """
     output_list = [book.words[random.randint(0, book.length - 1)]]
 
     # Generate an output of a 30 word length
     for i in range(len_chain - 1):
+        print(i, output_list[-1])
         possible_words = book.assisted_markov[output_list[-1]]
         output_list.append(possible_words[random.randint(0, len(possible_words) - 1)])
     return output_list
 
 
 def control_markov_chain(book, len_chain=30):
+    """
+    Generates a markov chain using the controlled method described in the Book class.
+    Takes a book object as a parameter and the length of the desired chain and
+    returns a list of words that is the markov chain.
+    :param book:
+    :param len_chain:
+    :return: markov chain list
+    """
     rand_int = random.randint(0, book.length - len_chain)
     return book.words[rand_int:rand_int + len_chain]
 
 
 def atf_helper(text):
     """
+    Creates a histogram and dictionary of augmented term frequencies for a given text.
+
     :param text: a list of words
-    :return: the histograms for raw word count and augmented term frequency
+    :return: the histogram for raw word count and augmented term frequency
 
     >>> text = ['word', 'word', 'hello']; hist, atf = atf_helper(text); [atf[word] for word in text]
     [1.0, 1.0, 0.75]
@@ -228,7 +272,9 @@ def atf_helper(text):
 
 def inv_doc_freq(word, hist_list):
     """
-    Returns the inverse document frequency based on the weighting: log(1+N/(n)).
+    :param word - a string
+    :param hist_list - the list of histograms for all texts in consideration for the similarity matrix
+    :return: the inverse document frequency based on the weighting: log(1+N/(n)).
 
     >>> inv_doc_freq('test', [{'this':1,'is':1,'a':1,'test':1},{'this':1,'should':1,'work':1}])
     0.3010299956639812
@@ -239,7 +285,7 @@ def inv_doc_freq(word, hist_list):
     n = 0
     for hist in hist_list:
         n += hist.get(word, 0)
-    return math.log10(1+len(hist_list)/n)
+    return math.log10(1 + len(hist_list) / n)
 
 
 def cosine_sim(vec1, vec2):
@@ -252,6 +298,7 @@ def cosine_sim(vec1, vec2):
     >>> cosine_sim([0,1], [1,0])
     0.0
     """
+
     vec_len = len(vec1)
     dot = sum(vec1[i] * vec2[i] for i in range(vec_len))
     mag_vec1 = math.sqrt(sum(vec1[i] ** 2 for i in range(vec_len)))
@@ -268,7 +315,6 @@ def make_similarity_matrix(texts):
     tf = 0.5 + frequency_of_word_in_document/(2*frequency_of_most_common_word)
 
     Note: have to account for print statements in the output for doctests
-
     >>> make_similarity_matrix([['this','is','a','test'],['this','is','a','test']])
     array([[1., 1.],0 %0 %
            [1., 1.]])
@@ -283,9 +329,11 @@ def make_similarity_matrix(texts):
 
     num_texts = len(texts)
 
+    # These lists will be populated with dictionaries of word histograms and augmented term frequencies. To access the
+    # desired dictionary of a text, simply access atf_list or hist_list with the same index of the text in the list
+    # texts.
     atf_list = []
     hist_list = []
-
     for text in texts:
         hist, atf = atf_helper(text)
         hist_list.append(hist)
@@ -307,15 +355,14 @@ def make_similarity_matrix(texts):
                 n += 1
             except:
                 n = 0
-            print("Analyzing...", round(100*n/num_texts**2, 2), "%", end="\r")
+            print("Analyzing...", round(100 * n / num_texts ** 2, 2), "%", end="\r")
 
             # Populate vectors with their respective tfidf values
             texti_vec = []
             textj_vec = []
             for word in vocabulary:
                 texti_vec.append(atf_list[i].get(word, 0) * inv_doc_freq(word, hist_list))
-                print(inv_doc_freq(word, hist_list))
-            for word in texts[j]:
+            for word in vocabulary:
                 textj_vec.append(atf_list[j].get(word, 0) * inv_doc_freq(word, hist_list))
 
             # Populate the similarity matrix with the cosine similarity of each vector
@@ -323,14 +370,32 @@ def make_similarity_matrix(texts):
     return matrix
 
 
-def display_similarity_matrix(matrix):
+def display_similarity_matrix(matrix, num_sets_markov_chains, num_texts):
+    """
+    :param matrix: similarity matrix
+    :param num_sets_markov_chains: number of markov chains that will be compared
+    :param num_texts: number of texts being compared; either a 1 or a 2
+    :return: none
+    Displays the scatterplot of text similarities
+    """
     # dissimilarity is 1 minus similarity
     dissimilarities = 1 - matrix
 
     # compute the embedding
     coord = MDS(dissimilarity='precomputed').fit_transform(dissimilarities)
 
-    plt.scatter(coord[:, 0], coord[:, 1])
+    # Creates the arrays of colors to distinguish between the different points in the scatter plot
+    colors = np.ndarray(0)
+    if num_texts == 1:
+        for i in range(3):
+            colors = np.concatenate((colors, (i/5) * np.ones(int(num_sets_markov_chains/3))))
+    else:
+        for i in range(3):
+            colors = np.concatenate((colors, (i/5) * np.ones(int(num_sets_markov_chains/3))))
+        for i in range(3):
+            colors = np.concatenate((colors, 1+(i/5) * np.ones(int(num_sets_markov_chains/3))))
+
+    plt.scatter(coord[:, 0], coord[:, 1], c=colors)
 
     # Label the points
     for i in range(coord.shape[0]):
@@ -349,3 +414,4 @@ if __name__ == "__main__":
     doctest.run_docstring_examples(make_similarity_matrix, globals(), verbose=False)
     doctest.run_docstring_examples(atf_helper, globals(), verbose=False)
     doctest.run_docstring_examples(inv_doc_freq, globals(), verbose=False)
+    doctest.run_docstring_examples(list_to_string(), globals(), verbose=False)
