@@ -12,8 +12,8 @@ book_list = [
 ]
 
 # Parameters for program
-len_markov_chain = 30000  # desired length in words of a markov chain
-num_sets_markov_chains = 6  # number of markov chains generated per text; must be a multiple of 3
+len_markov_chain = 5000  # desired length in words of a markov chain
+num_sets_markov_chains = 12  # number of markov chains generated per text; must be a multiple of 3
 num_texts_plot = uf.get_num_texts_plot()  # plot the similarity matrix of either 1 text or two texts. If only one text is considered either
 # user will choose to input only one text, or opt to use the hard coded list, in which only the first text will be
 # considered
@@ -42,7 +42,7 @@ for book_name_author in library:
         break
 
 text_lists = []
-for book in book_list:
+for book in library:
     for i in range(num_sets_markov_chains):
         if num_sets_markov_chains/3 < i:
             text_lists.append(
