@@ -6,6 +6,7 @@ import pickle
 import os
 import string
 import requests
+import math
 
 
 class Error(Exception):
@@ -188,13 +189,13 @@ class Book:
         atf_file_path = self.path_to_book[:len(self.path_to_book) - 4] + "___atf.txt"
         if not os.path.exists(atf_file_path):
             hist = self.hist
-            max_word_ct = 0
-            for word in hist:
-                if hist[word] > max_word_ct:
-                    max_word_ct = hist[word]
+            # max_word_ct = 0
+            # for word in hist:
+            #     if hist[word] > max_word_ct:
+            #         max_word_ct = hist[word]
             atf = {}
             for word in hist:
-                atf[word] = hist[word] / (2 * max_word_ct) + 0.5
+                atf[word] = 1 + math.log10(hist[word])
 
             hist_text = pickle.dumps(atf)
             atf_file = open(atf_file_path, 'wb')
