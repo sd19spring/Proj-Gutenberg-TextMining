@@ -15,8 +15,22 @@ import doctest
 
 book_list = [
     ('Frankenstein, by Mary Wollstonecraft (Godwin) Shelley'),
-    ('Such is Life, by Frank Wedekind'),
+    ('Watersprings, by Arthur Christopher Benson'),
 ]
+
+def get_num_texts_plot():
+    while True:
+        num_texts_plot = input("Would you like to perform calculations with one or two texts? 1 or 2 --> ")
+        if num_texts_plot == "1":
+            num = int(num_texts_plot)
+            break
+        elif num_texts_plot == "2":
+            num = int(num_texts_plot)
+            break
+        else:
+            print("Invalid input, please try again")
+            continue
+    return num
 
 
 def list_to_string(list):
@@ -149,12 +163,13 @@ def check_books_folder():
         os.system("mkdir books")
 
 
-def handle_books(gutenberg_index):
+def handle_books(gutenberg_index, num_texts_plot):
     """
     This function will prompt the user to either download books from the hard-coded list or to type in the desired
     books by hand. The program will then acquire the books if they haven't already, or if they have, loading them into
     book objects in the library dictionary.
     :param gutenberg_index:
+    :param num_texts_plot: either take input of one or two texts
     :return library: a dictionary of the book objects
     """
     library = {}
@@ -173,7 +188,7 @@ def handle_books(gutenberg_index):
                 if n == 0:
                     book_name_author = input(
                         "\nType in what book you want to download using this format: Book Title, by Author Name: --> ")
-                elif n == 1:
+                elif n == 1 and num_texts_plot == 2:
                     book_name_author = input(
                         "\nType in the second book you want to using this format: Book Title, by Author Name: --> ")
                 else:
@@ -223,7 +238,6 @@ def assisted_markov_chain(book, len_chain=30):
 
     # Generate an output of a 30 word length
     for i in range(len_chain - 1):
-        print(i, output_list[-1])
         possible_words = book.assisted_markov[output_list[-1]]
         output_list.append(possible_words[random.randint(0, len(possible_words) - 1)])
     return output_list
@@ -370,7 +384,7 @@ def make_similarity_matrix(texts):
     return matrix
 
 
-def display_similarity_matrix(matrix, num_sets_markov_chains, num_texts):
+def display_similarity_matrix(matrix, num_sets_markov_chains, num_texts_plot):
     """
     :param matrix: similarity matrix
     :param num_sets_markov_chains: number of markov chains that will be compared
@@ -386,16 +400,18 @@ def display_similarity_matrix(matrix, num_sets_markov_chains, num_texts):
 
     # Creates the arrays of colors to distinguish between the different points in the scatter plot
     colors = np.ndarray(0)
-    if num_texts == 1:
+    if num_texts_plot == 1:
         for i in range(3):
             colors = np.concatenate((colors, (i/5) * np.ones(int(num_sets_markov_chains/3))))
+        labels = ["Control Markov", "Random Markov", "Assisted Markov"]
     else:
         for i in range(3):
             colors = np.concatenate((colors, (i/5) * np.ones(int(num_sets_markov_chains/3))))
         for i in range(3):
             colors = np.concatenate((colors, 1+(i/5) * np.ones(int(num_sets_markov_chains/3))))
 
-    plt.scatter(coord[:, 0], coord[:, 1], c=colors)
+    plt.scatter(coord[:, 0], coord[:, 1], c=colors, label=labels)
+    plt.title()
 
     # Label the points
     for i in range(coord.shape[0]):
