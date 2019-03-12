@@ -1,10 +1,6 @@
-################################################################################
-
 """
-This stores the class(es) used for the text mining project.
+This stores the classes used for the text mining project.
 """
-
-################################################################################
 
 import pickle
 import os
@@ -73,7 +69,7 @@ class Book:
             # generating the unique part of the download link for the book
             book_link_number = book_link_number + book_number[i-1:i] + "/"
         book_link_number = book_link_number + book_number + "/" + book_number + ".txt"
-        print(book_link_number)
+
         try:
             print("Downloading {}".format(self.name_author))
             book_text = requests.get("http://mirrors.xmission.com/gutenberg/{}".format(book_link_number)).text
@@ -84,7 +80,10 @@ class Book:
             print("Invalid url / could not download from this link")
             raise InvalidBookError
 
-        book_text = book_text[2000:len(book_text) - 2000]
+        start_indicator = "*** START OF"
+        book_text = book_text.split(start_indicator,1)[1]
+        end_indicator = " ***\n"
+        book_text = book_text.split(end_indicator,1)[0]
 
         book_file = open(book_file_path, 'w')
         book_file.write(book_text)
@@ -256,17 +255,21 @@ class Book:
         depending on that word's augmented term frequency value (atf); the
         higher the atf, the more entries there are for each word and a greater
         chance that they will be chosen at random when the markov chain is made.
-        returns: the random_markov dictionary
-        arguments: none"""
+        :return: the random_markov dictionary
+        """
         assisted_markov_file_path = self.path_to_book[:len(self.path_to_book) - 4] + "___assistedmarkov.txt"
         if not os.path.exists(assisted_markov_file_path):
             print("Making helper dictionary for markov chain for {}".format(self.name_author))
             assisted_markov = {}
+            # For every except the last word in the book
             for i in range(len(self.words) - 1):
+                # Initialize the dictionary entry for each new key with a []
                 try:
                     assisted_markov[self.words[i]]
                 except KeyError:
                     assisted_markov[self.words[i]] = []
+                # If the next word is not yet in the list, add that word to the list. Make the number of entries
+                # of that word in the list relative to the tfidf value
                 if self.words[i + 1] not in assisted_markov[self.words[i]]:
                     for j in range(int(100 * self.atf[self.words[i + 1]])):
                         assisted_markov[self.words[i]].append(self.words[i + 1])
