@@ -410,13 +410,21 @@ def display_similarity_matrix(matrix, num_sets_markov_chains, num_texts_plot):
         for i in range(3):
             colors = np.concatenate((colors, 1+(i/5) * np.ones(int(num_sets_markov_chains/3))))
 
-    plt.scatter(coord[:, 0], coord[:, 1], c=colors, label=labels)
-    plt.title()
+    plt.scatter(coord[:, 0], coord[:, 1], c=colors)
 
     # Label the points
     for i in range(coord.shape[0]):
         plt.annotate(str(i), (coord[i, :]))
+    plt.title("Visualization of Similarity Matrix \n **refer to command line for key information**")
 
+    # Print information about the graph legend (TODO: implement graph legend within the plt)
+    print('\n**KEY**\nFor n markov chains generated, the first n/3 points (labeled with numbers) represent the control '
+          'markov chain, the second n/3 points represent the random markov chain, and the third n/3 '
+          'points represent the assisted markov chain. For example, with the default 3 markov chains generated, '
+          'points 0-1 represent the control markov, points 2-3 represent the random markov chains, and points 4-5 '
+          'represent the assisted markov chains. This pattern repeats when two texts are being considered. Each n/3 '
+          'set of points has the same color; with two books, the first book has dark blue/purple points, and the other'
+          'book has yellow and green points.\n')
     plt.show()
 
 
