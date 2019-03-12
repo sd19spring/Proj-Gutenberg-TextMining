@@ -271,15 +271,15 @@ def atf_helper(text):
     for word in text:
         hist[word] = hist.get(word, 0) + 1
         # calculate the most commonly occuring word in the text
-    max_word_ct = 0
-    for word in hist:
-        if hist[word] > max_word_ct:
-            max_word_ct = hist[word]
+    # max_word_ct = 0
+    # for word in hist:
+    #     if hist[word] > max_word_ct:
+    #         max_word_ct = hist[word]
 
     # calculate the (augmented) term frequency for each word in text
     atf = {}
     for word in hist:
-        atf[word] = hist[word] / (2 * max_word_ct) + 0.5
+        atf[word] = 1 + math.log10(hist[word])
 
     return hist, atf
 
@@ -288,7 +288,7 @@ def inv_doc_freq(word, hist_list):
     """
     :param word - a string
     :param hist_list - the list of histograms for all texts in consideration for the similarity matrix
-    :return: the inverse document frequency based on the weighting: log(1+N/(n)).
+    :return: the inverse document frequency based on the weighting: log10(1+N/(n)).
 
     >>> inv_doc_freq('test', [{'this':1,'is':1,'a':1,'test':1},{'this':1,'should':1,'work':1}])
     0.3010299956639812
