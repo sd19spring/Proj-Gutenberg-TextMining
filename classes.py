@@ -81,9 +81,15 @@ class Book:
             raise InvalidBookError
 
         start_indicator = "*** START OF"
-        book_text = book_text.split(start_indicator,1)[1]
+        try:  # if the text has an indicator of where the book starts, this will cut off the header
+            book_text = book_text.split(start_indicator,1)[1]
+        except IndexError:
+            pass
         end_indicator = " ***\n"
-        book_text = book_text.split(end_indicator,1)[0]
+        try:  # if the text has an indicator of where the book ends, this will cut off the part following the end
+            book_text = book_text.split(end_indicator,1)[0]
+        except:
+            pass
 
         book_file = open(book_file_path, 'w')
         book_file.write(book_text)
