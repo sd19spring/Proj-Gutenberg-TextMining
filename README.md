@@ -1,4 +1,4 @@
-# TextMining-duncanmazza
+# TextMining - A Project for SoftDes
 This code enables a few powerful computational tools to analyze text from Project Gutenberg. These tools include comparing and plotting the similarity of two texts, as well as generating markov chains trained on any text from Project Gutenberg that can be compared in similarity to each other and to markov chains trained on another text.
 
 # Instructions to run:
